@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "mongoose.h"
+#include "sp_key.h"
 
 static void send_reply(struct mg_connection *conn) {
 	if(!strcmp(conn->uri, "/search")) {
@@ -12,6 +13,8 @@ static void send_reply(struct mg_connection *conn) {
 		//call upvote function
 	} else if(!strcmp(conn->uri, "/queue")) {
 		//call queue function
+	} else if(!strcmp(conn->uri, "/key")) {
+		//mg_printf_data(conn, "Key: %d", g_appkey[0]);
 	} else {
 	}
 }

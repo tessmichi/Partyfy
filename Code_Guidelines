@@ -1,0 +1,23 @@
+Code Guidelines:
+
+  - tab size: 4
+  - Unix line endings ('\n', not '\r\n')
+  - Add sp_key.c and sp_key.h to directory
+		in sp_key.c add 
+    		#include <stdint.h>
+			#include <stdlib.h>
+			#include <stdint.h>
+			const uint8_t g_appkey[] = {
+				//Key here
+			};
+			const size_t g_appkey_size = sizeof(g_appkey);
+		in sp_key.h add
+			#include <stdio.h>
+			#include <stddef.h>
+			#include <stdint.h>
+			extern uint8_t g_appkey[];
+			extern const size_t g_appkey_size;
+  - Use touch .gitignore and add in
+		sp_key.h
+		sp_key.c
+	
