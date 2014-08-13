@@ -1,12 +1,25 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "mongoose.h"
 
+static void send_reply(struct mg_connection *conn) {
+	if(!strcmp(conn->uri, "/search")) {
+		mg_printf_data(conn, "Search %s", conn->query_string);
+		//Call search function
+	} else if(!strcmp(conn->uri, "/upvote")) {
+		mg_printf_data(conn, "Upvote %s", conn->query_string);
+		//call upvote function
+	} else if(!strcmp(conn->uri, "/queue")) {
+		//call queue function
+	} else {
+	}
+}
 static int event_handler(struct mg_connection *conn, enum mg_event ev) {
 	if(ev == MG_AUTH) {
 		return MG_TRUE;
-	} else if(ev == MG_REQUEST && !strcmp(conn->uri, "/hello")) {
-		mg_printf_data(conn, "%s", "Hello world");
+	} else if(ev == MG_REQUEST) {
+		send_reply(conn);
 		return MG_TRUE;
 	} else {
 		return MG_FALSE;
