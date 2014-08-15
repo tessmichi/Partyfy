@@ -23,7 +23,7 @@ Code Guidelines:
   - Git instructions for tux
 	if you don't have an ssh key on your tux account 
 		in your home directory type
-			ssh-keygen -t rsa -c "your_email@example.com"
+			ssh-keygen -t rsa -C "your_email@example.com"
 		then press enter for all options
 		do not enter passphrase or file
 	then do cd .ssh in your home directory
