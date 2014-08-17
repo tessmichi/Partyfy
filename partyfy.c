@@ -3,6 +3,7 @@
 #include <string.h>
 #include "mongoose.h"
 #include "sp_key.h"
+#include "libspotify/api.h"
 
 static void send_reply(struct mg_connection *conn) {
 	if(!strcmp(conn->uri, "/search")) {
