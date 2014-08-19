@@ -155,3 +155,42 @@ int main()
 	}
 	mg_destroy_server(&server);
 }
+
+/**
+ * Check to see if a track is playing
+ */
+bool isPlaying() {
+    return (g_playbackdone == 0);
+}
+
+static sp_link* get_search_track_link(sp_search *search, int index) {
+    sp_track *track = sp_search_track(search, index);
+    return (sp_link_create_from_track(track, 0));
+}
+
+/**
+ * Prints the Artist - Title for each item in the search result
+ */
+static void print_search(sp_search *search) {
+    int i;
+    for (i=0; i<sp_search_num_tracks(search); i++) {
+        sp_track *track = sp_search_track(search, i);
+        if (track == NULL) {
+            fprintf(stderr, "Search track was null.");
+        }
+        else {
+            printf("%s - \"%s\"\n", sp_track_artist(track), sp_track_name(track));
+        }
+    }
+}
+
+}
+
+
+
+
+
+
+
+
+
