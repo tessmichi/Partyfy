@@ -184,13 +184,15 @@ static void print_search(sp_search *search) {
     }
 }
 
+void upvote(sp_link* link)
+{
+	
 }
-
-
-
-
-
-
-
-
-
+char* print_queue()
+{
+	
+}
+void pop_queue()
+{
+	
+}
