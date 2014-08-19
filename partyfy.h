@@ -5,15 +5,23 @@
 #include <stdlib.h>
 #include "libspotify/api.h"
 
-void play(sp_session* session);
+struct songInQueue
+{
+	int nVotes;
+	sp_track* song;
+	songInQueue* next;
+	songInQueue* prev
+}
 
-char* search(sp_session* session, char* search);
+void play();
 
-bool is_playing(sp_session* session);
+char* search(char* search);
 
-void upvote(sp_session* session, sp_link* link);
+bool is_playing();
 
-void print_queue();
+void upvote(sp_link* link);
+
+char* print_queue();
 
 void pop_queue();
 

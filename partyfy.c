@@ -155,3 +155,20 @@ int main()
 	}
 	mg_destroy_server(&server);
 }
+
+void upvote(sp_link* link)
+{
+	
+}
+char* print_queue()
+{
+	
+}
+void pop_queue()
+{
+	
+}
+
+
+
+
