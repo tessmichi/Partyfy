@@ -163,14 +163,85 @@ bool isPlaying() {
     return (g_playbackdone == 0);
 }
 
-static sp_link* get_search_track_link(sp_search *search, int index) {
-    sp_track *track = sp_search_track(search, index);
-    return (sp_link_create_from_track(track, 0));
+/**
+ * Return JSON for query results of search
+ */
+static char* search_to_json(sp_search *search) {
+    int i;
+    int nTracks = sp_search_num_tracks(search);
+
+    int json_size = 1024;
+    char json[json_size] = "{\"results\":{";
+
+    if (nTracks > 1)
+        strcat(json, "[");
+    for (i=0; i < nTracks; i++)
+    {
+        int track_info_size = 256;
+        char append[track_info_size] = "{";
+        sp_track* track = sp_search_track(search, i);
+        
+        // Append the artist, track name, url, etc.
+        char* track_name = sp_track_name(track);
+
+        strcat_resize(&append, &track_info_size, "\"track\":\"");
+        // Print track name (TODO: look for quotes!)
+        strcat_resize(&append, &track_info_size, track_name);
+
+        strcat_resize(&append, &track_info_size, "\",\"artist\":\"");
+        // Print artist here (look for quotes!)
+        // 
+
+        strcat_resize(&append, &track_info_size, "\",\"album\":\"");
+        // Print album here (look for quotes!)
+        //
+
+        strcat_resize(&append, &track_info_size, "\",\"track_url\":\"");
+        // Print track url here (probably safe to assume there are no quotes here...)
+        //
+        
+        strcat_resize(&append, &track_info_size, "\"");
+
+        //// WIP ////
+        sp_artist* artist = sp_track_artist(track);
+        // TODO
+        /////////////
+        
+
+        // Release the track
+        sp_track_release(track); //TODO: Is this necessary?
+        track = NULL;
+
+        strcat_resize(&append, &track_info_size, "}");
+        if (i < nTracks - 1)
+            strcat_resize(&append, &track_info_size, ",");
+
+        strcat_resize(&json, &json_size, append);
+    }
+
+
 }
 
+/**
+ * Allows string concatenation without worrying about buffer overflows.
+ *
+ * Refactors dest size by powers of 2 as necessary.
+ */
+void strcat_resize(char** dest, int* dest_size, const char* source)
+{
+    int overage = strlen(source) + strlen(*dest) + 1 - (*dest_size);
+    if (overage > 0) {
+        // resize the dest string
+        int refactorSize = 2;
+        while (refactorSize * (*dest_size) < overage + (*dest_size))
+            refactorSize *= 2;
 
-static char* search_to_json(sp_search *search) {
-    // use link to
+        char newString[(*dest_size) * refactorSize];
+        strncpy(newString, *dest, strlen(*dest));
+        *dest = newString;
+        *dest_size = refactorSize * (*dest_size);
+    }
+    strcat(*dest, source);
 }
 
 /**
