@@ -160,13 +160,13 @@ int main()
  * Check to see if a track is playing
  */
 bool isPlaying() {
-    return (g_playbackdone == 0);
+    return (g_playback_done == 0);
 }
 
-/**
- * Return JSON for query results of search
- */
-static char* search_to_json(sp_search *search) {
+///**
+// * Return JSON for query results of search
+// */
+/*static char* search_to_json(sp_search *search) {
     int i;
     int nTracks = sp_search_num_tracks(search);
 
@@ -203,7 +203,7 @@ static char* search_to_json(sp_search *search) {
         strcat_resize(&append, &track_info_size, "\"");
 
         //// WIP ////
-        sp_artist* artist = sp_track_artist(track);
+        //sp_artist* artist = sp_track_artist(track);
         // TODO
         /////////////
         
@@ -220,7 +220,7 @@ static char* search_to_json(sp_search *search) {
     }
 
 
-}
+}*/
 
 /**
  * Allows string concatenation without worrying about buffer overflows.
@@ -244,10 +244,10 @@ void strcat_resize(char** dest, int* dest_size, const char* source)
     strcat(*dest, source);
 }
 
-/**
- * Prints the Artist - Title for each item in the search result
- */
-static void print_search(sp_search *search) {
+///**
+// * Prints the Artist - Title for each item in the search result
+// */
+/*static void print_search(sp_search *search) {
     int i;
     for (i=0; i<sp_search_num_tracks(search); i++) {
         sp_track *track = sp_search_track(search, i);
@@ -255,10 +255,11 @@ static void print_search(sp_search *search) {
             fprintf(stderr, "Search track was null.");
         }
         else {
-            printf("%s - \"%s\"\n", sp_track_artist(track), sp_track_name(track));
+            // TODO: multiple artists...
+            printf("%s - \"%s\"\n", sp_track_artist(track, 0), sp_track_name(track));
         }
     }
-}
+}*/
 
 void upvote(sp_link* link)
 {
