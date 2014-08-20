@@ -168,6 +168,11 @@ static sp_link* get_search_track_link(sp_search *search, int index) {
     return (sp_link_create_from_track(track, 0));
 }
 
+
+static char* search_to_json(sp_search *search) {
+    // use link to
+}
+
 /**
  * Prints the Artist - Title for each item in the search result
  */
