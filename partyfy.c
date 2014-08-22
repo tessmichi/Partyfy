@@ -33,14 +33,6 @@ static sp_track *g_currenttrack;
 //Index to next track
 static int g_track_index;
 
-typedef struct songInQueue songInQueue;
-struct songInQueue
-{
-	int nVotes;
-	sp_link* song;
-	songInQueue* next;
-	songInQueue* prev;
-};
 songInQueue* firstSong;
 songInQueue* lastSong;
 
@@ -392,9 +384,95 @@ static void print_search(sp_search *search) {
     }
 }
 
+int amtSongs()
+{
+	int count = 0;
+	songInQueue* temp = firstSong;
+	while (temp != NULL)
+	{
+		count++;
+		temp = temp->next;
+	}
+	return count;
+}
+
+void enqueue(songInQueue* song)
+{
+	if (firstSong == NULL || firstSong->song == NULL)
+	{
+		firstSong = song;
+		lastSong = song;
+	}
+	else
+	{
+		songInQueue* temp = firstSong;
+		if (song->nVotes > temp->nVotes || temp->prev == NULL)
+		{
+			firstSong->prev=song;
+			song->next = firstSong;
+			firstSong = song;
+		}
+		else
+		{
+			while (song->nVotes < temp->nVotes)
+			{
+				if (temp->next == NULL)
+					break;
+				temp = temp->next;
+			}
+			if (temp->next == NULL && (song->nVotes < temp->nVotes))
+			{
+				lastSong->next = song;
+				song->prev = lastSong;
+				lastSong = song;
+			}
+			else
+			{
+				(temp->prev)->next = song;
+				song->prev = temp->prev;
+				song->next = temp;
+				temp->prev = song;
+			}
+		}
+	}
+}
+
 void upvote(sp_link* link)
 {
-	
+	// This will be set to true if the song already exists in the queue
+	int found = FALSE;
+
+	// This will be updated as we cycle through the list
+	songInQueue* temp = firstSong;
+	// This will be the one we create IF it doesn't exist yet
+	songInQueue* temp1 = malloc(sizeof(songInQueue));
+	char s1[256];
+	char s2[265];
+
+	while (temp != NULL && temp -> song != NULL)
+	{
+		// Get links as strings for comparison
+		sp_link_as_string(temp->song,s1,sizeof(s1));
+		sp_link_as_string(link,s2,sizeof(s2));
+		// If found, add a vote
+		if (strcmp(s1,s2) == 0)
+		{
+			temp->nVotes++;
+			// Set found to true so keep searching
+			found = TRUE;
+		}
+		temp = temp->next;
+	}
+	if (found == FALSE)
+	{
+		// make the temp1 object
+		temp1->song = link;
+		temp1->next = NULL;
+		temp1->prev = NULL;
+		temp1->nVotes = 1;
+		// add it with a nVotes starting at 1
+		enqueue(temp1);
+	}
 }
 
 char* print_queue()
@@ -424,7 +502,117 @@ char* print_queue()
     return json;
 }
 
-void pop_queue()
+sp_link* pop_queue()
 {
-	
+	songInQueue* ret;
+	if (lastSong == NULL)
+	{
+		// No last song means no songs
+		return NULL;
+	}
+	else if (lastSong->prev == NULL)
+	{
+		// No song before the last song means there is only 1 song
+		
+		songInQueue* temp;
+		songInQueue* tt = lastSong;
+		temp = tt;
+
+		// Reset first and last song
+		firstSong = NULL;
+		lastSong = NULL;
+
+		// Set the return value
+		ret = temp;
+	}
+	else
+	{
+		// This one will be changed in the while loop
+		songInQueue* temp = firstSong;
+		// This is the one with most votes
+		songInQueue* winner = firstSong;
+		while (temp != NULL && temp->nVotes != NULL)
+		{
+			// This one has the lasrgest votes atm
+			if (temp->nVotes > winner->nVotes)
+			{
+				winner = temp;
+			}
+			temp = temp->next;
+		}
+
+		// Update links in both directions
+		if (winner->next != NULL)
+		{
+			(winner->next)->prev = winner->prev;
+		}
+		if (winner->prev != NULL)
+		{
+			(winner->prev)->next = winner->next;
+		}
+		winner->next = NULL;
+		winner->prev = NULL;
+
+		// Set return value
+		ret = winner;
+	}
+
+	// Update last song
+	songInQueue* temp = firstSong;
+	while (temp->next != NULL)
+	{
+		temp = temp->next;
+	}
+	lastSong = temp;
+
+	// Return the one you popped
+	// TODO: return sp_track instead of sp_link
+	return ret->song;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
