@@ -27,6 +27,12 @@ char* search(char* search);
  */
 char* search_to_json(sp_search *search);
 
+/**
+ * Append the JSON representing the track to param json.
+ * 
+ * Returns TRUE if success - FALSE otherwise
+ */
+int track_to_json(sp_track* track, char** json, int* json_size);
 
 /**
  * Appends the source to dest, escaping double quotes and resizing dest as necessary.

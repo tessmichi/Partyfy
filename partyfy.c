@@ -32,6 +32,10 @@ static int g_remove_tracks = 0;
 static sp_track *g_currenttrack;
 //Index to next track
 static int g_track_index;
+
+#define TRUE 1
+#define FALSE 0
+
 /*---- Session Callback ----*/
 static void logged_in(sp_session *sess, sp_error error) {
 	if(SP_ERROR_OK != error) {
@@ -188,77 +192,87 @@ char* search_to_json(sp_search *search) {
     strcat(json, "[");
     for (i=0; i < nTracks; i++)
     {
-        int track_info_size = 256;
-        char* append = malloc(track_info_size * sizeof(char));
-
-        if (append == NULL)
-        {
-            fprintf(stderr, "Failed to allocate memory for track info.");
-            if (json)
-                free(json);
-            return NULL;
-        }
-        
-        sp_track *track = sp_search_track(search, i);
-        
-        // Print track here (watch for quotes!)
-        strcat(append, "{\"track_name\":\"");
-        append_string_cleanse(&append, &track_info_size, sp_track_name(track));
-
-        int j;
-        int nArtists = sp_track_num_artists(track);
-        // Print artists here (watch for quotes!)
-        strcat_resize(&append, &track_info_size, "\",\"artists\":[\"");
-        for (j=0; j<nArtists; j++)
-        {
-            sp_artist *artist = sp_track_artist(track, j);
-            if (artist == NULL)
-            {
-                fprintf(stderr, "track artist retrieved was null.");
-                if (append)
-                    free(append);
-                if (json)
-                    free(json);
-                return NULL;
-            }
-            append_string_cleanse(&append, &track_info_size, sp_artist_name(artist));
-            if (j < nArtists - 1)
-                strcat_resize(&append, &track_info_size, "\",\"");
-            sp_artist_release(artist); //TODO: is this necessary?
-        }
-
-        // Print album here (watch for quotes!)
-        strcat_resize(&append, &track_info_size, "\"],\"album\":\"");
-        sp_album *album = sp_track_album(track);
-        append_string_cleanse(&append, &track_info_size, sp_album_name(album));
-        sp_album_release(album); //TODO: is this necessary?
-
-        // Print track url here (probably safe to assume there are no quotes here...)
-        strcat_resize(&append, &track_info_size, "\",\"track_url\":\"");
-        sp_link *l;
-        char url[256];
-        l = sp_link_create_from_track(track, i);
-        sp_link_as_string(l, url, sizeof(url));
-        strcat_resize(&append, &track_info_size, url);
-        sp_link_release(l);
-        
-        strcat_resize(&append, &track_info_size, "\""); // close track_url quotes
-        
-        // Release the track
-        sp_track_release(track); //TODO: Is this necessary?
-        track = NULL;
-
-        strcat_resize(&append, &track_info_size, "}");
+        sp_track *track = sp_search_track(search,i);
+        if (!track_to_json(track, &json, &json_size))
+          return NULL;
         if (i < nTracks - 1)
-            strcat_resize(&append, &track_info_size, ",");
-
-        strcat_resize(&json, &json_size, append);
-
-        if (append)
-            free(append);
+          strcat_resize(&json, &json_size, ",");
+        // Release the track
+        sp_track_release(track);
     }
     strcat_resize(&json, &json_size, "]}}");
+    return json;
 }
+
+/**
+ * Append the JSON representing the track to param json.
+ * 
+ * Returns TRUE if success - FALSE otherwise
+ */
+int track_to_json(sp_track* track, char** json, int* json_size)
+{
+  int track_info_size = 256;
+  char* append = malloc(track_info_size * sizeof(char));
+  
+  if (append == NULL)
+  {
+    fprintf(stderr, "Failed to allocate memory for track info.");
+    if (json)
+      free(json);
+    return FALSE;
+  }
+        
+  // Print track here (watch for quotes!)
+  strcat(append, "{\"track_name\":\"");
+  append_string_cleanse(&append, &track_info_size, sp_track_name(track));
+
+  int j;
+  int nArtists = sp_track_num_artists(track);
+  // Print artists here (watch for quotes!)
+  strcat_resize(&append, &track_info_size, "\",\"artists\":[\"");
+  for (j=0; j<nArtists; j++)
+  {
+    sp_artist *artist = sp_track_artist(track, j);
+    if (artist == NULL)
+    {
+      fprintf(stderr, "track artist retrieved was null.");
+      if (append)
+        free(append);
+      if (json)
+        free(json);
+      return FALSE;
+    }
+    append_string_cleanse(&append, &track_info_size, sp_artist_name(artist));
+    if (j < nArtists - 1)
+      strcat_resize(&append, &track_info_size, "\",\"");
+    sp_artist_release(artist);
+  }
+
+  // Print album here (watch for quotes!)
+  strcat_resize(&append, &track_info_size, "\"],\"album\":\"");
+  sp_album *album = sp_track_album(track);
+  append_string_cleanse(&append, &track_info_size, sp_album_name(album));
+  sp_album_release(album);
+
+  // Print track url here (probably safe to assume there are no quotes here...)
+  strcat_resize(&append, &track_info_size, "\",\"track_url\":\"");
+  sp_link *l;
+  char url[256];
+  l = sp_link_create_from_track(track, 0);
+  sp_link_as_string(l, url, sizeof(url));
+  strcat_resize(&append, &track_info_size, url);
+  sp_link_release(l);
+        
+  strcat_resize(&append, &track_info_size, "\"}"); // close track_url quotes
+  strcat_resize(json, json_size, append);
+
+  if (append)
+    free(append);
+  return TRUE;
+}
+
+
+
 
 /**
  * Appends the source to dest, escaping double quotes and resizing dest as necessary.
