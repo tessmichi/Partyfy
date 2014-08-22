@@ -95,6 +95,7 @@ static sp_session_config spconfig = {
 };
 /*---- Session Callbacks end ----*/
 
+
 static void send_reply(struct mg_connection *conn) {
 	if(!strcmp(conn->uri, "/search")) {
 		mg_printf_data(conn, "Search %s", conn->query_string);
