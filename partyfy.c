@@ -33,6 +33,15 @@ static sp_track *g_currenttrack;
 //Index to next track
 static int g_track_index;
 
+typedef struct songInQueue songInQueue;
+struct songInQueue
+{
+	int nVotes;
+	sp_link* song;
+	songInQueue* next;
+	songInQueue* prev;
+};
+
 #define TRUE 1
 #define FALSE 0
 
@@ -101,7 +110,7 @@ static sp_session_config spconfig = {
 /*---- Session Callbacks end ----*/
 
 static void send_reply(struct mg_connection *conn) {
-	if(!strcmp(conn->uri, "/search")) {
+  if(!strcmp(conn->uri, "/search")) {
 		mg_printf_data(conn, "Search %s", conn->query_string);
 		//Call search function
 	} else if(!strcmp(conn->uri, "/upvote")) {
@@ -184,7 +193,7 @@ char* search_to_json(sp_search *search) {
 
     if (json == NULL)
     {
-        fprintf(stderr, "Failed to allocate memory for JSON string.");
+        fprintf(stderr, "Failed to allocate memory for JSON string.\n");
         return NULL;
     }
     strcat(json, "{\"track_results\":{");
@@ -195,7 +204,7 @@ char* search_to_json(sp_search *search) {
         sp_track *track = sp_search_track(search,i);
         if (!track_to_json(track, &json, &json_size))
         {
-          fprintf(stderr, "Failed to set track info in JSON buffer.");
+          fprintf(stderr, "Failed to set track info in JSON buffer.\n");
           if (json)
             free(json);
           return NULL;
@@ -221,7 +230,7 @@ int track_to_json(sp_track* track, char** json, int* json_size)
   
   if (append == NULL)
   {
-    fprintf(stderr, "Failed to allocate memory for track info.");
+    fprintf(stderr, "Failed to allocate memory for track info.\n");
     return FALSE;
   }
         
@@ -238,7 +247,7 @@ int track_to_json(sp_track* track, char** json, int* json_size)
     sp_artist *artist = sp_track_artist(track, j);
     if (artist == NULL)
     {
-      fprintf(stderr, "track artist retrieved was null.");
+      fprintf(stderr, "track artist retrieved was null.\n");
       if (append)
         free(append);
       return FALSE;
@@ -283,14 +292,14 @@ int track_to_json(sp_track* track, char** json, int* json_size)
 void append_string_cleanse(char** dest, int* dest_size, const char* source)
 {
     if (source == NULL) {
-        fprintf(stderr, "[append_string_cleanse] source was NULL");
+        fprintf(stderr, "[append_string_cleanse] source was NULL\n");
         return;
     }
     int sourceLen = strlen(source);
     char* append = malloc (2 * sourceLen + 1 * sizeof(char)); // guarantees enough space
 
     if (append == NULL) {
-        fprintf(stderr, "Failed to allocate memory for cleansed string.");
+        fprintf(stderr, "Failed to allocate memory for cleansed string.\n");
         return;
     }
 
@@ -319,7 +328,7 @@ void append_string_cleanse(char** dest, int* dest_size, const char* source)
 void strcat_resize(char** dest, int* dest_size, const char* source)
 {
     if (source == NULL) {
-        fprintf(stderr, "[strcat_resize] source was NULL");
+        fprintf(stderr, "[strcat_resize] source was NULL\n");
         return;
     }
     int overage = strlen(source) + strlen(*dest) + 1 - (*dest_size);
@@ -338,7 +347,7 @@ void strcat_resize(char** dest, int* dest_size, const char* source)
         {
             newString = malloc((*dest_size) + overage);
             if (newString == NULL) {
-                fprintf(stderr, "Failed to allocate memory for concatenated string.");
+                fprintf(stderr, "Failed to allocate memory for concatenated string.\n");
                 return;
             }
         }
@@ -359,7 +368,7 @@ static void print_search(sp_search *search) {
     for (i=0; i<sp_search_num_tracks(search); i++) {
         sp_track *track = sp_search_track(search, i);
         if (track == NULL) {
-            fprintf(stderr, "Search track was null.");
+            fprintf(stderr, "Search track was null.\n");
             return;
         }
         else {
@@ -385,10 +394,34 @@ void upvote(sp_link* link)
 {
 	
 }
+
 char* print_queue()
 {
-	
+    int json_size = 1024;
+    char* json = malloc(json_size * sizeof(char));
+    strcpy(json, "{\"queue\":[");
+    songInQueue* temp = firstSong;
+    while (temp != NULL)
+    { 
+        sp_track *track = sp_link_as_track(temp->song);
+        if (track == NULL) {
+            fprintf(stderr, "link was not for a track.\n");
+            return NULL;
+        }
+        if (!track_to_json(track, &json, &json_size)) {
+            fprintf(stderr, "Failed to set track info in JSON buffer\n");
+            return NULL;
+        }
+        // if it's not the last element in the queue, print a comma
+        if (temp->next == NULL)
+            strcat_resize(&json, &json_size, ",");
+    temp = temp->next;
+    }
+    strcat_resize(&json, &json_size, "]}");
+
+    return json;
 }
+
 void pop_queue()
 {
 	

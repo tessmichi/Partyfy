@@ -5,16 +5,6 @@
 #include <stdlib.h>
 #include "libspotify/api.h"
 
-typedef struct songInQueue songInQueue;
-
-struct songInQueue
-{
-	int nVotes;
-	sp_track* song;
-	songInQueue* next;
-	songInQueue* prev;
-};
-
 void play();
 
 char* search(char* search);
