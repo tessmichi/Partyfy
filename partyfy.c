@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include "partyfy.h"
 #include "mongoose.h"
 #include "sp_key.h"
 #include "audio.h"
@@ -163,51 +164,86 @@ bool isPlaying() {
     return (g_playback_done == 0);
 }
 
-///**
-// * Return JSON for query results of search
-// */
-/*static char* search_to_json(sp_search *search) {
+/**
+ * Return JSON for query results of search
+ * Remember to free memory of return value when done with it.
+ *
+ * Returns NULL on error.
+ */
+char* search_to_json(sp_search *search) {
     int i;
     int nTracks = sp_search_num_tracks(search);
 
     int json_size = 1024;
-    char json[json_size] = "{\"results\":{";
 
-    if (nTracks > 1)
-        strcat(json, "[");
+    // pointer passed to strcat_resize, so this can't be a char array
+    char* json = malloc(json_size * sizeof(char));
+    if (json == NULL)
+    {
+        fprintf(stderr, "Failed to allocate memory for JSON string.");
+        return NULL;
+    }
+    strcat(json, "{\"track_results\":{");
+
+    strcat(json, "[");
     for (i=0; i < nTracks; i++)
     {
         int track_info_size = 256;
-        char append[track_info_size] = "{";
-        sp_track* track = sp_search_track(search, i);
+        char* append = malloc(track_info_size * sizeof(char));
+
+        if (append == NULL)
+        {
+            fprintf(stderr, "Failed to allocate memory for track info.");
+            if (json)
+                free(json);
+            return NULL;
+        }
         
-        // Append the artist, track name, url, etc.
-        char* track_name = sp_track_name(track);
+        sp_track *track = sp_search_track(search, i);
+        
+        // Print track here (watch for quotes!)
+        strcat(append, "{\"track_name\":\"");
+        append_string_cleanse(&append, &track_info_size, sp_track_name(track));
 
-        strcat_resize(&append, &track_info_size, "\"track\":\"");
-        // Print track name (TODO: look for quotes!)
-        strcat_resize(&append, &track_info_size, track_name);
+        int j;
+        int nArtists = sp_track_num_artists(track);
+        // Print artists here (watch for quotes!)
+        strcat_resize(&append, &track_info_size, "\",\"artists\":[\"");
+        for (j=0; j<nArtists; j++)
+        {
+            sp_artist *artist = sp_track_artist(track, j);
+            if (artist == NULL)
+            {
+                fprintf(stderr, "track artist retrieved was null.");
+                if (append)
+                    free(append);
+                if (json)
+                    free(json);
+                return NULL;
+            }
+            append_string_cleanse(&append, &track_info_size, sp_artist_name(artist));
+            if (j < nArtists - 1)
+                strcat_resize(&append, &track_info_size, "\",\"");
+            sp_artist_release(artist); //TODO: is this necessary?
+        }
 
-        strcat_resize(&append, &track_info_size, "\",\"artist\":\"");
-        // Print artist here (look for quotes!)
-        // 
+        // Print album here (watch for quotes!)
+        strcat_resize(&append, &track_info_size, "\"],\"album\":\"");
+        sp_album *album = sp_track_album(track);
+        append_string_cleanse(&append, &track_info_size, sp_album_name(album));
+        sp_album_release(album); //TODO: is this necessary?
 
-        strcat_resize(&append, &track_info_size, "\",\"album\":\"");
-        // Print album here (look for quotes!)
-        //
-
-        strcat_resize(&append, &track_info_size, "\",\"track_url\":\"");
         // Print track url here (probably safe to assume there are no quotes here...)
-        //
+        strcat_resize(&append, &track_info_size, "\",\"track_url\":\"");
+        sp_link *l;
+        char url[256];
+        l = sp_link_create_from_track(track, i);
+        sp_link_as_string(l, url, sizeof(url));
+        strcat_resize(&append, &track_info_size, url);
+        sp_link_release(l);
         
-        strcat_resize(&append, &track_info_size, "\"");
-
-        //// WIP ////
-        //sp_artist* artist = sp_track_artist(track);
-        // TODO
-        /////////////
+        strcat_resize(&append, &track_info_size, "\""); // close track_url quotes
         
-
         // Release the track
         sp_track_release(track); //TODO: Is this necessary?
         track = NULL;
@@ -217,49 +253,121 @@ bool isPlaying() {
             strcat_resize(&append, &track_info_size, ",");
 
         strcat_resize(&json, &json_size, append);
+
+        if (append)
+            free(append);
+    }
+    strcat_resize(&json, &json_size, "]}}");
+}
+
+/**
+ * Appends the source to dest, escaping double quotes and resizing dest as necessary.
+ *
+ * Assumes no other characters besides double quotes and apostrophies 
+ * exist in source that require escaping.
+ */
+void append_string_cleanse(char** dest, int* dest_size, const char* source)
+{
+    if (source == NULL) {
+        fprintf(stderr, "[append_string_cleanse] source was NULL");
+        return;
+    }
+    int sourceLen = strlen(source);
+    char* append = malloc (2 * sourceLen + 1); // guarantees enough space
+    if (append == NULL) {
+        fprintf(stderr, "Failed to allocate memory for cleansed string.");
+        return;
     }
 
+    int i=0;
+    int pos=0;
 
-}*/
+    for (i=0; i<sourceLen; i++) {
+        if (source[i] == '\"') {
+            append[pos++] = '\\';
+            append[pos++] = '\"';
+        }
+        else {
+            append[pos++] = source[i];
+        }
+    }
+    append[pos] = '\0';
+    strcat_resize(dest, dest_size, append);
+    free(append);
+}
 
 /**
  * Allows string concatenation without worrying about buffer overflows.
- *
  * Refactors dest size by powers of 2 as necessary.
+ *
+ * In case it fails to allocate memory for new size, it tries
+ * to allocate the bare minimum. If that fails, it prints an error
+ * and returns.
  */
 void strcat_resize(char** dest, int* dest_size, const char* source)
 {
+    if (source == NULL) {
+        fprintf(stderr, "[strcat_resize] source was NULL");
+        return;
+    }
     int overage = strlen(source) + strlen(*dest) + 1 - (*dest_size);
-    if (overage > 0) {
+    if (overage > 0)
+    {
         // resize the dest string
         int refactorSize = 2;
         while (refactorSize * (*dest_size) < overage + (*dest_size))
             refactorSize *= 2;
 
-        char newString[(*dest_size) * refactorSize];
+        // malloc new memory for the string to be stored in
+        // DO NOT use a char array, or it will free the memory when
+        // it goes out of scope and return a dangling pointer.
+        char* newString = malloc((*dest_size) * refactorSize * sizeof(char));
+        if (newString == NULL)
+        {
+            newString = malloc((*dest_size) + overage);
+            if (newString == NULL) {
+                fprintf(stderr, "Failed to allocate memory for concatenated string.");
+                return;
+            }
+        }
         strncpy(newString, *dest, strlen(*dest));
+        if (*dest)
+            free(*dest);
         *dest = newString;
         *dest_size = refactorSize * (*dest_size);
     }
     strcat(*dest, source);
 }
 
-///**
-// * Prints the Artist - Title for each item in the search result
-// */
-/*static void print_search(sp_search *search) {
+/**
+ * Prints the Title - Artists for each item in the search result
+ */
+static void print_search(sp_search *search) {
     int i;
     for (i=0; i<sp_search_num_tracks(search); i++) {
         sp_track *track = sp_search_track(search, i);
         if (track == NULL) {
             fprintf(stderr, "Search track was null.");
+            return;
         }
         else {
-            // TODO: multiple artists...
-            printf("%s - \"%s\"\n", sp_track_artist(track, 0), sp_track_name(track));
+            int artistBufferSize = 16;
+            char* artistBuffer = malloc (artistBufferSize * sizeof(char));
+            int nArtists = sp_track_num_artists(track);
+            int j;
+            for (j=0; j<nArtists; j++) {
+                sp_artist *artist = sp_track_artist(track, j);
+                strcat_resize(&artistBuffer, &artistBufferSize, sp_artist_name(artist));
+                if (j < nArtists - 1)
+                    strcat_resize(&artistBuffer, &artistBufferSize, ",");
+                sp_artist_release(artist);
+            }
+            printf("\"%s\" - %s\n", sp_track_name(track), artistBuffer);
+            
+            free (artistBuffer);
         }
     }
-}*/
+}
 
 void upvote(sp_link* link)
 {
