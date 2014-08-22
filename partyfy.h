@@ -31,6 +31,8 @@ char* search_to_json(sp_search *search);
 /**
  * Appends the source to dest, escaping double quotes and resizing dest as necessary.
  *
+ * NOTE* does not cleanse dest. It only cleanses the appended string.
+ *
  * Assumes no other characters besides double quotes and apostrophies 
  * exist in source that require escaping.
  */

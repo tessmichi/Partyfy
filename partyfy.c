@@ -263,6 +263,8 @@ char* search_to_json(sp_search *search) {
 /**
  * Appends the source to dest, escaping double quotes and resizing dest as necessary.
  *
+ * NOTE* does not cleanse dest. It only cleanses the appended string.
+ *
  * Assumes no other characters besides double quotes and apostrophies 
  * exist in source that require escaping.
  */
@@ -273,25 +275,22 @@ void append_string_cleanse(char** dest, int* dest_size, const char* source)
         return;
     }
     int sourceLen = strlen(source);
-    char* append = malloc (2 * sourceLen + 1); // guarantees enough space
+    char* append = malloc (2 * sourceLen + 1 * sizeof(char)); // guarantees enough space
+
     if (append == NULL) {
         fprintf(stderr, "Failed to allocate memory for cleansed string.");
         return;
     }
+    memset(append, '\0', (2*sourceLen + 1) * sizeof(char));
 
     int i=0;
     int pos=0;
-
     for (i=0; i<sourceLen; i++) {
-        if (source[i] == '\"') {
+        if (source[i] == '\"')
             append[pos++] = '\\';
-            append[pos++] = '\"';
-        }
-        else {
-            append[pos++] = source[i];
-        }
+        append[pos++] = source[i];
     }
-    append[pos] = '\0';
+    
     strcat_resize(dest, dest_size, append);
     free(append);
 }
@@ -303,6 +302,7 @@ void append_string_cleanse(char** dest, int* dest_size, const char* source)
  * In case it fails to allocate memory for new size, it tries
  * to allocate the bare minimum. If that fails, it prints an error
  * and returns.
+ *
  */
 void strcat_resize(char** dest, int* dest_size, const char* source)
 {
@@ -330,7 +330,7 @@ void strcat_resize(char** dest, int* dest_size, const char* source)
                 return;
             }
         }
-        strncpy(newString, *dest, strlen(*dest));
+        strncpy(newString, *dest, strlen(*dest)+1); // add 1 for null terminator
         if (*dest)
             free(*dest);
         *dest = newString;
