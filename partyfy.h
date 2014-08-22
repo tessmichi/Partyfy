@@ -49,13 +49,17 @@ void strcat_resize(char** dest, int* dest_size, const char* source);
  */
 static void print_search(sp_search *search);
 
+void enqueue(songInQueue* song);
+
+void amtSongs();
+
 bool is_playing();
 
 void upvote(sp_link* link);
 
 char* print_queue();
 
-void pop_queue();
+sp_link* pop_queue();
 
 
 #endif

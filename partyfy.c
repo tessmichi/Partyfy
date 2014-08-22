@@ -41,6 +41,8 @@ struct songInQueue
 	songInQueue* next;
 	songInQueue* prev;
 };
+songInQueue* firstSong;
+songInQueue* lastSong;
 
 #define TRUE 1
 #define FALSE 0
