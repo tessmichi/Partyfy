@@ -178,10 +178,10 @@ char* search_to_json(sp_search *search) {
     int i;
     int nTracks = sp_search_num_tracks(search);
 
-    int json_size = 1024;
-
     // pointer passed to strcat_resize, so this can't be a char array
+    int json_size = 1024;
     char* json = malloc(json_size * sizeof(char));
+
     if (json == NULL)
     {
         fprintf(stderr, "Failed to allocate memory for JSON string.");
@@ -194,7 +194,12 @@ char* search_to_json(sp_search *search) {
     {
         sp_track *track = sp_search_track(search,i);
         if (!track_to_json(track, &json, &json_size))
+        {
+          fprintf(stderr, "Failed to set track info in JSON buffer.");
+          if (json)
+            free(json);
           return NULL;
+        }
         if (i < nTracks - 1)
           strcat_resize(&json, &json_size, ",");
         // Release the track
@@ -217,8 +222,6 @@ int track_to_json(sp_track* track, char** json, int* json_size)
   if (append == NULL)
   {
     fprintf(stderr, "Failed to allocate memory for track info.");
-    if (json)
-      free(json);
     return FALSE;
   }
         
@@ -238,8 +241,6 @@ int track_to_json(sp_track* track, char** json, int* json_size)
       fprintf(stderr, "track artist retrieved was null.");
       if (append)
         free(append);
-      if (json)
-        free(json);
       return FALSE;
     }
     append_string_cleanse(&append, &track_info_size, sp_artist_name(artist));
@@ -271,9 +272,6 @@ int track_to_json(sp_track* track, char** json, int* json_size)
   return TRUE;
 }
 
-
-
-
 /**
  * Appends the source to dest, escaping double quotes and resizing dest as necessary.
  *
@@ -295,7 +293,6 @@ void append_string_cleanse(char** dest, int* dest_size, const char* source)
         fprintf(stderr, "Failed to allocate memory for cleansed string.");
         return;
     }
-    memset(append, '\0', (2*sourceLen + 1) * sizeof(char));
 
     int i=0;
     int pos=0;
@@ -304,6 +301,7 @@ void append_string_cleanse(char** dest, int* dest_size, const char* source)
             append[pos++] = '\\';
         append[pos++] = source[i];
     }
+    append[pos++] = '\0';
     
     strcat_resize(dest, dest_size, append);
     free(append);
@@ -344,7 +342,7 @@ void strcat_resize(char** dest, int* dest_size, const char* source)
                 return;
             }
         }
-        strncpy(newString, *dest, strlen(*dest)+1); // add 1 for null terminator
+        strncpy(newString, *dest, strlen(*dest)+1); // adds 1 for null terminator
         if (*dest)
             free(*dest);
         *dest = newString;
