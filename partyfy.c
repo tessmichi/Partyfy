@@ -40,6 +40,32 @@ songInQueue* lastSong;
 #define TRUE 1
 #define FALSE 0
 
+static void try_playback_start(void) {
+	sp_track *t;
+	if(lastSong->next == NULL) {
+		fprintf(stderr, "Playlist: No tracks in playlist. Waiting\n");
+		return;
+	}
+	t = sp_link_as_track(firstSong->song);
+	if(g_currenttrack && t != g_currenttrack) {
+		audio_fifo_flush(&g_audiofifo);
+		sp_session_player_unload(g_sess);
+		g_currenttrack = NULL;
+	}
+
+	if(!t)
+		return;
+	if(sp_track_error(t) != SP_ERROR_OK)
+		return;
+	if(g_currenttrack == t)
+		return;
+	g_currenttrack = t;
+	printf("Partyfy: Now playing \"%s\"...\n", sp_track_name(t));
+	fflush(stdout);
+	sp_session_player_load(g_sess, t);
+	sp_session_player_play(g_sess, 1);
+}
+
 /*---- Session Callback ----*/
 static void logged_in(sp_session *sess, sp_error error) {
 	if(SP_ERROR_OK != error) {
@@ -103,7 +129,15 @@ static sp_session_config spconfig = {
 	NULL,
 };
 /*---- Session Callbacks end ----*/
-
+static void track_ended(void) {
+	int tracks = 0;
+	if(g_currenttrack) {
+		g_currenttrack = NULL;
+		sp_session_player_unload(g_sess);
+		pop_queue();
+		try_playback_start();
+	}
+}
 
 static void send_reply(struct mg_connection *conn) {
   if(!strcmp(conn->uri, "/search")) {
@@ -116,6 +150,7 @@ static void send_reply(struct mg_connection *conn) {
 		//call upvote function
 		mg_printf_data(conn,"Upvoted");
 		upvoteHelper(conn->query_string);
+		try_playback_start();
 	} else if(!strcmp(conn->uri, "/queue")) {
 		//call queue function
 		// TODO: print this to user not console printf(print_queue());

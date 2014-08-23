@@ -72,5 +72,8 @@ char* print_queue();
 
 sp_link* pop_queue();
 
+static void track_ended();
+
+static void try_playback_start();
 
 #endif
