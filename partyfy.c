@@ -113,11 +113,12 @@ static void send_reply(struct mg_connection *conn) {
 	} else if(!strcmp(conn->uri, "/upvote")) {
 		mg_printf_data(conn, "Upvote %s", conn->query_string);
 		//call upvote function
-		printf("Upvoted");
+		mg_printf_data(conn,"Upvoted");
 		upvoteHelper(conn->query_string);
 	} else if(!strcmp(conn->uri, "/queue")) {
 		//call queue function
 		// TODO: print this to user not console printf(print_queue());
+		mg_printf_data(conn,print_queue());
 	} else if(!strcmp(conn->uri, "/key")) {
 		//mg_printf_data(conn, "Key: %d", g_appkey[0]);
 		// this is not part of our project. it will not be done.
@@ -452,8 +453,9 @@ void enqueue(songInQueue* song)
 
 void upvoteHelper(char* s)
 {
-	// TODO: imeplement
-// turns s into sp_link
+	// turns s into sp_link
+	sp_link* temp = sp_link_create_from_string(s);
+	upvote(temp);
 	// calls upvote
 }
 
