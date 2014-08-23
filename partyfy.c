@@ -12,6 +12,7 @@
 #include "audio.h"
 #include "libspotify/api.h"
 
+void upvoteHelper(char* s);
 //Output queue for audio
 static audio_fifo_t g_audiofifo;
 //Synchronization mutex for main
@@ -107,13 +108,19 @@ static void send_reply(struct mg_connection *conn) {
   if(!strcmp(conn->uri, "/search")) {
 		mg_printf_data(conn, "Search %s", conn->query_string);
 		//Call search function
+		// TODO: andrew, plz implement
+		//conn->query_string is how you find the search term
 	} else if(!strcmp(conn->uri, "/upvote")) {
 		mg_printf_data(conn, "Upvote %s", conn->query_string);
 		//call upvote function
+		printf("Upvoted");
+		upvoteHelper(conn->query_string);
 	} else if(!strcmp(conn->uri, "/queue")) {
 		//call queue function
+		// TODO: print this to user not console printf(print_queue());
 	} else if(!strcmp(conn->uri, "/key")) {
 		//mg_printf_data(conn, "Key: %d", g_appkey[0]);
+		// this is not part of our project. it will not be done.
 	} else {
 	}
 }
@@ -207,7 +214,13 @@ char* search_to_json(sp_search *search) {
           strcat_resize(&json, &json_size, ",");
         // Release the track
         sp_track_release(track);
-    }
+		// TODO: delete this
+		  sp_link* l;
+		  char url[256];
+		  l = sp_link_create_from_track(track,0);
+		  sp_link_as_string(l,url,sizeof(url));
+		  printf("\t\t%s\n", url);
+	 }
     strcat_resize(&json, &json_size, "]}}");
     return json;
 }
@@ -435,6 +448,13 @@ void enqueue(songInQueue* song)
 			}
 		}
 	}
+}
+
+void upvoteHelper(char* s)
+{
+	// TODO: imeplement
+// turns s into sp_link
+	// calls upvote
 }
 
 void upvote(sp_link* link)
