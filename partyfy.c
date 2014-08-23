@@ -12,7 +12,7 @@
 #include "audio.h"
 #include "libspotify/api.h"
 
-void upvoteHelper(char* s);
+void upvoteHelper(const char* s);
 //Output queue for audio
 static audio_fifo_t g_audiofifo;
 //Synchronization mutex for main
@@ -123,7 +123,9 @@ static void send_reply(struct mg_connection *conn) {
 	} else if(!strcmp(conn->uri, "/key")) {
 		//mg_printf_data(conn, "Key: %d", g_appkey[0]);
 		// this is not part of our project. it will not be done.
-	} else {
+	} else if(!strcmp(conn->uri, "/ping")) {
+		mg_printf_data(conn,"Hello. Partyfy is running.");
+ 	} else {
 	}
 }
 static int event_handler(struct mg_connection *conn, enum mg_event ev) {
@@ -161,14 +163,14 @@ int main()
 
 	for(;;) {
 		mg_poll_server(server, 1000);
-		while(!g_notify_do)
-			pthread_cond_wait(&g_notify_cond, &g_notify_mutex);
-		g_notify_do = 0;
-		pthread_mutex_unlock(&g_notify_mutex);
-		if(g_playback_done) {
-			g_playback_done = 0;
-		}
-		pthread_mutex_lock(&g_notify_mutex);
+		//while(!g_notify_do)
+		//	pthread_cond_wait(&g_notify_cond, &g_notify_mutex);
+		//g_notify_do = 0;
+		//pthread_mutex_unlock(&g_notify_mutex);
+		//if(g_playback_done) {
+		//	g_playback_done = 0;
+		//}
+		//pthread_mutex_lock(&g_notify_mutex);
 	}
 	mg_destroy_server(&server);
 }
@@ -452,7 +454,7 @@ void enqueue(songInQueue* song)
 	}
 }
 
-void upvoteHelper(char* s)
+void upvoteHelper(const char* s)
 {
 	// turns s into sp_link
 	sp_link* temp = sp_link_create_from_string(s);
@@ -554,7 +556,7 @@ sp_link* pop_queue()
 		songInQueue* temp = firstSong;
 		// This is the one with most votes
 		songInQueue* winner = firstSong;
-		while (temp != NULL && temp->nVotes != NULL)
+		while (temp != NULL)
 		{
 			// This one has the lasrgest votes atm
 			if (temp->nVotes > winner->nVotes)
