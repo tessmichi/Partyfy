@@ -291,6 +291,7 @@ int main()
         state = sp_session_connectionstate(g_sess);
     }
 	//audio_init(&g_audiofifo);
+	printf("Logged in\n");
     for(;;) {
 		mg_poll_server(server, 1000);
 		sp_session_process_events(g_sess, &timeout);
@@ -683,7 +684,7 @@ char* print_queue()
         }
         // if it's not the last element in the queue, print a comma
         if (temp->next != NULL)
-            strcat_resize(&json, &json_size, ",");
+            strcat_resize(&json, &json_size, "\n\n");
 
     temp = temp->next;
     //sp_track_release(track);
