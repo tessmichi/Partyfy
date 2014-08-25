@@ -202,7 +202,7 @@ static void send_reply(struct mg_connection *conn) {
         printf("Received \"search\" request.\n");
         fflush(stdout);
 
-		mg_printf_data(conn, "Search %s", conn->query_string);
+		//mg_printf_data(conn, "Search %s", conn->query_string);
 		//Call search function
 		
         int isLoaded = 0;
@@ -364,13 +364,13 @@ char* search_to_json(sp_search *search) {
         fprintf(stderr, "Failed to allocate memory for JSON string.\n");
         return NULL;
     }
-    strcat(json, "{\"track_results\":{");
+    strcat(json, "{\"track_results\":");
 
     strcat(json, "[");
     for (i=0; i < nTracks; i++)
     {
         sp_track *track = sp_search_track(search,i);
-        if (!track_to_json(track, &json, &json_size))
+        if (!track_to_json(track, &json, &json_size, 0))
         {
           fprintf(stderr, "Failed to set track info in JSON buffer.\n");
           if (json)
@@ -388,7 +388,7 @@ char* search_to_json(sp_search *search) {
 		  //sp_link_as_string(l,url,sizeof(url));
 		  //printf("\t\t%s\n", url);
 	 }
-    strcat_resize(&json, &json_size, "]}}");
+    strcat_resize(&json, &json_size, "]}");
     return json;
 }
 
@@ -397,7 +397,7 @@ char* search_to_json(sp_search *search) {
  * 
  * Returns TRUE if success - FALSE otherwise
  */
-int track_to_json(sp_track* track, char** json, int* json_size)
+int track_to_json(sp_track* track, char** json, int* json_size, int count)
 {
   int track_info_size = 256;
   char* append = malloc(track_info_size * sizeof(char));
@@ -447,7 +447,12 @@ int track_to_json(sp_track* track, char** json, int* json_size)
   sp_link_as_string(l, url, sizeof(url));
   strcat_resize(&append, &track_info_size, url);
 //  sp_link_release(l);
-        
+  char votes[5];
+  sprintf(votes, "%d", count);
+  strcat_resize(&append, &track_info_size, "\",\"votes\":\"");
+  strcat_resize(&append, &track_info_size, votes);  
+
+
   strcat_resize(&append, &track_info_size, "\"}"); // close track_url quotes
   strcat_resize(json, json_size, append);
 
@@ -684,16 +689,17 @@ char* print_queue()
             fprintf(stderr, "link was not for a track.\n");
             return NULL;
         }
-        if (!track_to_json(track, &json, &json_size)) {
+        if (!track_to_json(track, &json, &json_size, temp->nVotes)) {
             fprintf(stderr, "Failed to set track info in JSON buffer\n");
             return NULL;
         }
         // if it's not the last element in the queue, print a comma
-        if (temp->next != NULL)
-            strcat_resize(&json, &json_size, "\n\n");
+        if (temp->next != NULL) {
+            strcat_resize(&json, &json_size, ",");
+		}
 
-    temp = temp->next;
-    //sp_track_release(track);
+		temp = temp->next;
+		//sp_track_release(track);
     }
     strcat_resize(&json, &json_size, "]}");
 

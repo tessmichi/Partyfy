@@ -33,7 +33,7 @@ char* search_to_json(sp_search *search);
  * 
  * Returns TRUE if success - FALSE otherwise
  */
-int track_to_json(sp_track* track, char** json, int* json_size);
+int track_to_json(sp_track* track, char** json, int* json_size, int count);
 
 /**
  * Appends the source to dest, escaping double quotes and resizing dest as necessary.
