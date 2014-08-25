@@ -34,6 +34,9 @@ static sp_track *g_currenttrack;
 //Index to next track
 static int g_track_index;
 
+static pthread_mutex_t g_search_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t g_search_cond = PTHREAD_COND_INITIALIZER;
+
 songInQueue* firstSong;
 songInQueue* lastSong;
 
@@ -139,12 +142,32 @@ static void track_ended(void) {
 	}
 }
 
+static char* search_blocking(sp_search* search) {
+    pthread_mutex_lock(&g_search_mutex);
+    while (!sp_search_is_loaded(search))
+        pthread_cond_wait(&g_search_cond, &g_search_mutex);
+    char* rv = search_to_json(search);
+    pthread_mutex_unlock(&g_search_mutex);
+    return rv;
+}
+
+static void SP_CALLCONV search_complete(sp_search *search, void *userdata) {
+    pthread_mutex_lock(&g_search_mutex);
+    pthread_cond_signal(&g_search_cond);
+    pthread_mutex_unlock(&g_search_mutex);
+}
+
 static void send_reply(struct mg_connection *conn) {
   if(!strcmp(conn->uri, "/search")) {
 		mg_printf_data(conn, "Search %s", conn->query_string);
 		//Call search function
 		// TODO: andrew, plz implement
 		//conn->query_string is how you find the search term
+        sp_search* search = sp_search_create(g_sess, conn->query_string, 0, 100, 0, 5, 0, 5, 0, 1, SP_SEARCH_STANDARD, &search_complete, NULL);
+        char* rv = search_blocking(search);
+
+        mg_printf_data(conn, rv);
+
 	} else if(!strcmp(conn->uri, "/upvote")) {
 		mg_printf_data(conn, "Upvote %s", conn->query_string);
 		//call upvote function
@@ -553,7 +576,7 @@ char* print_queue()
             return NULL;
         }
         // if it's not the last element in the queue, print a comma
-        if (temp->next == NULL)
+        if (temp->next != NULL)
             strcat_resize(&json, &json_size, ",");
     temp = temp->next;
     }
