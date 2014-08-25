@@ -207,7 +207,13 @@ static void send_reply(struct mg_connection *conn) {
 		
         int isLoaded = 0;
         sp_search* search = sp_search_create(g_sess, conn->query_string, 0, 100, 0, 100, 0, 100, 0, 100, SP_SEARCH_STANDARD, &search_complete, &isLoaded);
-
+		int timeout = 0;
+		sp_session_process_events(g_sess, &timeout);
+		while(!isLoaded) {
+			usleep(100000);
+			printf("Waiting...\n");
+			sp_session_process_events(g_sess, &timeout);
+		}
 //    pthread_mutex_lock(&g_search_mutex);
 
 //    while (!isLoaded) {
