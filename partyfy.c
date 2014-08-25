@@ -142,29 +142,48 @@ static void track_ended(void) {
 	}
 }
 
-static char* search_blocking(sp_search* search) {
-    pthread_mutex_lock(&g_search_mutex);
-    while (!sp_search_is_loaded(search))
-        pthread_cond_wait(&g_search_cond, &g_search_mutex);
-    char* rv = search_to_json(search);
-    pthread_mutex_unlock(&g_search_mutex);
-    return rv;
-}
-
 static void SP_CALLCONV search_complete(sp_search *search, void *userdata) {
-    pthread_mutex_lock(&g_search_mutex);
-    pthread_cond_signal(&g_search_cond);
-    pthread_mutex_unlock(&g_search_mutex);
+    printf("search complete!\n");
+    fflush(stdout);
+//    pthread_mutex_lock(&g_search_mutex);
+    if (sp_search_error(search) == SP_ERROR_OK) {
+//        pthread_cond_signal(&g_search_cond);
+//        *((int*) userdata) = 1;
+    }
+    else {
+        printf("Failed to search: %s\n",
+                sp_error_message(sp_search_error(search)));
+        fflush(stdout);
+    }
+//    pthread_mutex_unlock(&g_search_mutex);
 }
 
 static void send_reply(struct mg_connection *conn) {
   if(!strcmp(conn->uri, "/search")) {
+        printf("Received \"search\" request.\n");
+        fflush(stdout);
+
 		mg_printf_data(conn, "Search %s", conn->query_string);
 		//Call search function
-		// TODO: andrew, plz implement
-		//conn->query_string is how you find the search term
-        sp_search* search = sp_search_create(g_sess, conn->query_string, 0, 100, 0, 5, 0, 5, 0, 1, SP_SEARCH_STANDARD, &search_complete, NULL);
-        char* rv = search_blocking(search);
+		
+        int isLoaded = 0;
+        sp_search* search = sp_search_create(g_sess, conn->query_string, 0, 1, 0, 1, 0, 1, 0, 1, SP_SEARCH_STANDARD, &search_complete, NULL);
+
+//    pthread_mutex_lock(&g_search_mutex);
+
+//    while (!isLoaded) {
+    while(!sp_search_is_loaded(search)) {
+//        printf("Waiting...\n");
+//        fflush(stdout);
+//        pthread_cond_wait(&g_search_cond, &g_search_mutex);
+        usleep(1000000);
+    }
+    printf("Received search_complete signal.");
+    fflush(stdout);
+    char* rv = search_to_json(search);
+//    pthread_mutex_unlock(&g_search_mutex);
+
+        sp_search_release(search);
 
         mg_printf_data(conn, rv);
 
@@ -202,8 +221,8 @@ int main()
 	mg_set_option(server, "Partyfy", ".");
 	mg_set_option(server, "listening_port", "8080");
 
-	const char *username = NULL;
-	const char *password = NULL;
+	const char *username = "partydummy275";
+	const char *password = "cs275";
 	sp_session *sp;
 	spconfig.application_key_size = g_appkey_size;
 	sp_error err = sp_session_create(&spconfig, &sp);
@@ -218,8 +237,18 @@ int main()
 
 	sp_session_login(sp, username, password, 0, NULL);
 	pthread_mutex_lock(&g_notify_mutex);
+    
+    // See if the user logged in successfully
+    printConnectionState();
+    
+    sp_connectionstate state = sp_session_connectionstate(g_sess);
+    while (state != SP_CONNECTION_STATE_LOGGED_IN) {
+        printf("Logging in...\n");
+        usleep(100000);
+        state = sp_session_connectionstate(g_sess);
+    }
 
-	for(;;) {
+    for(;;) {
 		mg_poll_server(server, 1000);
 		//while(!g_notify_do)
 		//	pthread_cond_wait(&g_notify_cond, &g_notify_mutex);
@@ -231,6 +260,30 @@ int main()
 		//pthread_mutex_lock(&g_notify_mutex);
 	}
 	mg_destroy_server(&server);
+}
+
+void printConnectionState() {
+    sp_connectionstate state = sp_session_connectionstate(g_sess);
+    switch(state) {
+        case SP_CONNECTION_STATE_LOGGED_OUT:
+            printf(".User is logged out.\n");
+            break;
+        case SP_CONNECTION_STATE_LOGGED_IN:
+            printf(".User is logged in.\n");
+            break;
+        case SP_CONNECTION_STATE_DISCONNECTED:
+            printf(".Someone was logged in.. but now they're not.\n");
+            break;
+        case SP_CONNECTION_STATE_UNDEFINED:
+            printf(".Connection state is undefined.\n");
+            break;
+        case SP_CONNECTION_STATE_OFFLINE:
+            printf(".User in offline mode.\n");
+            break;
+        default:
+            printf(".Not sure what the state is...");
+            break;
+        }
 }
 
 /**

@@ -60,6 +60,10 @@ void strcat_resize(char** dest, int* dest_size, const char* source);
  */
 static void print_search(sp_search *search);
 
+static void SP_CALLCONV search_complete(sp_search *search, void *userdata);
+
+void printConnectionState();
+
 void enqueue(songInQueue* song);
 
 int amtSongs();
