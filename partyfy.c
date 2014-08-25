@@ -264,8 +264,7 @@ int main()
 
 	const char *username = "cs283project";
     //size_t size;
-	//char *password = getpass("Enter the password for the account\n");
-    const char *password = "Partyfy";
+	char *password = getpass("Enter the password for the account\n");
 
 	sp_session *sp;
 	spconfig.application_key_size = g_appkey_size;
