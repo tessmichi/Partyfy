@@ -245,9 +245,10 @@ int main()
 	mg_set_option(server, "Partyfy", ".");
 	mg_set_option(server, "listening_port", "8080");
 
-	const char *username = "brawllegend@gmail.com";
-    size_t size;
-	char *password = getpass("Enter the password for the account\n");
+	const char *username = "cs283project";
+    //size_t size;
+	//char *password = getpass("Enter the password for the account\n");
+    const char *password = "Partyfy";
 
 	sp_session *sp;
 	spconfig.application_key_size = g_appkey_size;
@@ -333,6 +334,7 @@ char* search_to_json(sp_search *search) {
     // pointer passed to strcat_resize, so this can't be a char array
     int json_size = 1024;
     char* json = malloc(json_size * sizeof(char));
+    memset(json, '\0', json_size * sizeof(char));
 
     if (json == NULL)
     {
@@ -376,7 +378,8 @@ int track_to_json(sp_track* track, char** json, int* json_size)
 {
   int track_info_size = 256;
   char* append = malloc(track_info_size * sizeof(char));
-  
+  memset(append, '\0', track_info_size * sizeof(char));
+
   if (append == NULL)
   {
     fprintf(stderr, "Failed to allocate memory for track info.\n");
@@ -523,6 +526,7 @@ static void print_search(sp_search *search) {
         else {
             int artistBufferSize = 16;
             char* artistBuffer = malloc (artistBufferSize * sizeof(char));
+            memset(artistBuffer, '\0', artistBufferSize * sizeof(char));
             int nArtists = sp_track_num_artists(track);
             int j;
             for (j=0; j<nArtists; j++) {
@@ -642,6 +646,7 @@ char* print_queue()
 {
     int json_size = 1024;
     char* json = malloc(json_size * sizeof(char));
+    memset(json, '\0', json_size * sizeof(char));
     strcpy(json, "{\"queue\":[");
     songInQueue* temp = firstSong;
     while (temp != NULL)
