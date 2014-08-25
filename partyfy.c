@@ -75,7 +75,7 @@ static void try_playback_start(void) {
 		return;
 	}
 	if(g_currenttrack == t) {
-		printf("Same track\n");
+		printf("Coninuting same track\n");
 		fflush(stdout);
 		return;
 	}
