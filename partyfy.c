@@ -45,7 +45,7 @@ songInQueue* lastSong;
 
 static void try_playback_start(void) {
 	sp_track *t;
-	if(lastSong->next == NULL) {
+	if(amtSongs() == 0) {
 		fprintf(stderr, "Playlist: No tracks in playlist. Waiting\n");
 		return;
 	}
@@ -55,13 +55,30 @@ static void try_playback_start(void) {
 		sp_session_player_unload(g_sess);
 		g_currenttrack = NULL;
 	}
-
-	if(!t)
+	
+	if(!t) {
+		printf("Null Song\n");
+		fflush(stdout);
 		return;
-	if(sp_track_error(t) != SP_ERROR_OK)
+	}
+	int next_timeout = 0;
+	sp_session_process_events(g_sess, &next_timeout);
+	while(sp_track_error(t) != SP_ERROR_OK) {
+		sp_session_process_events(g_sess, &next_timeout);
+	   	printf("Loading Track...\n");
+        usleep(100000);
+	}
+	if(sp_track_error(t) != SP_ERROR_OK) {
+		printf("SP_ERRoR\n");
+		printf("%i\n", sp_track_error(t));
+		fflush(stdout);
 		return;
-	if(g_currenttrack == t)
+	}
+	if(g_currenttrack == t) {
+		printf("Same track\n");
+		fflush(stdout);
 		return;
+	}
 	g_currenttrack = t;
 	printf("Partyfy: Now playing \"%s\"...\n", sp_track_name(t));
 	fflush(stdout);
@@ -95,13 +112,13 @@ static int music_delivery(sp_session *sess, const sp_audioformat *format,
 		pthread_mutex_unlock(&af->mutex);
 		return 0;
 	}
-	s = num_frames * sizeof(int16_t) *format->channels;
+	s = num_frames * sizeof(int16_t) * format->channels;
 	afd = malloc(sizeof(*afd) + s);
 	memcpy(afd->samples, frames, s);
 	afd->nsamples = num_frames;
 	afd->rate = format->sample_rate;
 	afd->channels = format->channels;
-	TAILQ_INSERT_TAIL(&af->q, afd, link);
+	//TAILQ_INSERT_TAIL(&af->q, afd, link);
 	af->qlen += num_frames;
 	pthread_cond_signal(&af->cond);
 	pthread_mutex_unlock(&af->mutex);
@@ -274,7 +291,7 @@ int main()
         usleep(100000);
         state = sp_session_connectionstate(g_sess);
     }
-
+	//audio_init(&g_audiofifo);
     for(;;) {
 		mg_poll_server(server, 1000);
 		sp_session_process_events(g_sess, &timeout);
