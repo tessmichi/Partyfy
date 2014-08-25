@@ -374,7 +374,7 @@ char* search_to_json(sp_search *search) {
         if (i < nTracks - 1)
           strcat_resize(&json, &json_size, ",");
         // Release the track
-        sp_track_release(track);
+//        sp_track_release(track);
 		// TODO: delete this
 		  //sp_link* l;
 		  //char url[256];
@@ -424,14 +424,14 @@ int track_to_json(sp_track* track, char** json, int* json_size)
     append_string_cleanse(&append, &track_info_size, sp_artist_name(artist));
     if (j < nArtists - 1)
       strcat_resize(&append, &track_info_size, "\",\"");
-    sp_artist_release(artist);
+//    sp_artist_release(artist);
   }
 
   // Print album here (watch for quotes!)
   strcat_resize(&append, &track_info_size, "\"],\"album\":\"");
   sp_album *album = sp_track_album(track);
   append_string_cleanse(&append, &track_info_size, sp_album_name(album));
-  sp_album_release(album);
+//  sp_album_release(album);
 
   // Print track url here (probably safe to assume there are no quotes here...)
   strcat_resize(&append, &track_info_size, "\",\"track_url\":\"");
@@ -440,7 +440,7 @@ int track_to_json(sp_track* track, char** json, int* json_size)
   l = sp_link_create_from_track(track, 0);
   sp_link_as_string(l, url, sizeof(url));
   strcat_resize(&append, &track_info_size, url);
-  sp_link_release(l);
+//  sp_link_release(l);
         
   strcat_resize(&append, &track_info_size, "\"}"); // close track_url quotes
   strcat_resize(json, json_size, append);
@@ -551,12 +551,13 @@ static void print_search(sp_search *search) {
                 strcat_resize(&artistBuffer, &artistBufferSize, sp_artist_name(artist));
                 if (j < nArtists - 1)
                     strcat_resize(&artistBuffer, &artistBufferSize, ",");
-                sp_artist_release(artist);
+//                sp_artist_release(artist);
             }
             printf("\"%s\" - %s\n", sp_track_name(track), artistBuffer);
             
             free (artistBuffer);
         }
+//        sp_track_release(track);
     }
 }
 
@@ -641,7 +642,7 @@ void upvote(sp_link* link)
 		// If found, add a vote
 		if (strcmp(s1,s2) == 0)
 		{
-			temp->nVotes++;
+			(temp->nVotes)++;
 			// Set found to true so keep searching
 			found = TRUE;
 		}
@@ -666,8 +667,12 @@ char* print_queue()
     memset(json, '\0', json_size * sizeof(char));
     strcpy(json, "{\"queue\":[");
     songInQueue* temp = firstSong;
-    while (temp != NULL)
+    while (temp != NULL && temp->song != NULL)
     { 
+        if (temp->song == NULL) {
+            printf("Warning: song was null for enqueued track.\n");
+            fflush(stdout);
+        }
         sp_track *track = sp_link_as_track(temp->song);
         if (track == NULL) {
             fprintf(stderr, "link was not for a track.\n");
@@ -680,7 +685,9 @@ char* print_queue()
         // if it's not the last element in the queue, print a comma
         if (temp->next != NULL)
             strcat_resize(&json, &json_size, ",");
+
     temp = temp->next;
+    //sp_track_release(track);
     }
     strcat_resize(&json, &json_size, "]}");
 
