@@ -235,21 +235,22 @@ int main()
 	pthread_mutex_init(&g_notify_mutex, NULL);
 	pthread_cond_init(&g_notify_cond, NULL);
 
-	sp_session_login(sp, username, password, 0, NULL);
-	pthread_mutex_lock(&g_notify_mutex);
+	sp_session_login(g_sess, username, password, 0, NULL);
     
     // See if the user logged in successfully
     printConnectionState();
-    
+    int timeout = 0;
     sp_connectionstate state = sp_session_connectionstate(g_sess);
     while (state != SP_CONNECTION_STATE_LOGGED_IN) {
-        printf("Logging in...\n");
+		sp_session_process_events(g_sess, &timeout);
+	   	printf("Logging in...\n");
         usleep(100000);
         state = sp_session_connectionstate(g_sess);
     }
 
     for(;;) {
 		mg_poll_server(server, 1000);
+		sp_session_process_events(g_sess, &timeout);
 		//while(!g_notify_do)
 		//	pthread_cond_wait(&g_notify_cond, &g_notify_mutex);
 		//g_notify_do = 0;
