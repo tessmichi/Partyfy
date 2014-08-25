@@ -624,7 +624,7 @@ void upvote(sp_link* link)
 		// If found, add a vote
 		if (strcmp(s1,s2) == 0)
 		{
-			temp->nVotes++;
+			(temp->nVotes)++;
 			// Set found to true so keep searching
 			found = TRUE;
 		}
@@ -649,7 +649,7 @@ char* print_queue()
     memset(json, '\0', json_size * sizeof(char));
     strcpy(json, "{\"queue\":[");
     songInQueue* temp = firstSong;
-    while (temp != NULL)
+    while (temp != NULL && temp->song != NULL)
     { 
         sp_track *track = sp_link_as_track(temp->song);
         if (track == NULL) {
@@ -663,7 +663,7 @@ char* print_queue()
         // if it's not the last element in the queue, print a comma
         if (temp->next != NULL)
             strcat_resize(&json, &json_size, ",");
-    temp = temp->next;
+    	  temp = temp->next;
     }
     strcat_resize(&json, &json_size, "]}");
 
