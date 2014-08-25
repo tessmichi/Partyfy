@@ -148,14 +148,36 @@ static void SP_CALLCONV search_complete(sp_search *search, void *userdata) {
 //    pthread_mutex_lock(&g_search_mutex);
     if (sp_search_error(search) == SP_ERROR_OK) {
 //        pthread_cond_signal(&g_search_cond);
-//        *((int*) userdata) = 1;
+        *((int*) userdata) = 1;
     }
     else {
         printf("Failed to search: %s\n",
                 sp_error_message(sp_search_error(search)));
         fflush(stdout);
     }
+
+    char* rv = search_to_json(search);
+    puts(rv);
 //    pthread_mutex_unlock(&g_search_mutex);
+}
+
+static void print_search_error(sp_search *search) {
+    switch (sp_search_error(search)) {
+        case SP_ERROR_OK:
+            printf("ERROR_OK\n");
+            break;
+        case SP_ERROR_IS_LOADING:
+            printf("ERROR_IS_LOADING\n");
+            break;
+        case SP_ERROR_OTHER_PERMANENT:
+            printf("ERROR_OTHER_PERMANENT\n");
+            break;
+        case SP_ERROR_OTHER_TRANSIENT:
+            printf("ERROR_OTHER_TRANSIENT\n");
+            break;
+        default:
+            printf("I dunno what the problem is with search.\n");
+    }
 }
 
 static void send_reply(struct mg_connection *conn) {
@@ -167,19 +189,21 @@ static void send_reply(struct mg_connection *conn) {
 		//Call search function
 		
         int isLoaded = 0;
-        sp_search* search = sp_search_create(g_sess, conn->query_string, 0, 1, 0, 1, 0, 1, 0, 1, SP_SEARCH_STANDARD, &search_complete, NULL);
+        sp_search* search = sp_search_create(g_sess, conn->query_string, 0, 100, 0, 100, 0, 100, 0, 100, SP_SEARCH_STANDARD, &search_complete, &isLoaded);
 
 //    pthread_mutex_lock(&g_search_mutex);
 
 //    while (!isLoaded) {
-    while(!sp_search_is_loaded(search)) {
+//    while(!sp_search_is_loaded(search)) {
 //        printf("Waiting...\n");
 //        fflush(stdout);
 //        pthread_cond_wait(&g_search_cond, &g_search_mutex);
-        usleep(1000000);
-    }
-    printf("Received search_complete signal.");
-    fflush(stdout);
+//        printConnectionState();
+//        print_search_error(search);
+//        usleep(1000000);
+//    }
+//    printf("Received search_complete signal.");
+//    fflush(stdout);
     char* rv = search_to_json(search);
 //    pthread_mutex_unlock(&g_search_mutex);
 
@@ -221,8 +245,10 @@ int main()
 	mg_set_option(server, "Partyfy", ".");
 	mg_set_option(server, "listening_port", "8080");
 
-	const char *username = "partydummy275";
-	const char *password = "cs275";
+	const char *username = "brawllegend@gmail.com";
+    size_t size;
+	char *password = getpass("Enter the password for the account\n");
+
 	sp_session *sp;
 	spconfig.application_key_size = g_appkey_size;
 	sp_error err = sp_session_create(&spconfig, &sp);
@@ -331,11 +357,11 @@ char* search_to_json(sp_search *search) {
         // Release the track
         sp_track_release(track);
 		// TODO: delete this
-		  sp_link* l;
-		  char url[256];
-		  l = sp_link_create_from_track(track,0);
-		  sp_link_as_string(l,url,sizeof(url));
-		  printf("\t\t%s\n", url);
+		  //sp_link* l;
+		  //char url[256];
+		  //l = sp_link_create_from_track(track,0);
+		  //sp_link_as_string(l,url,sizeof(url));
+		  //printf("\t\t%s\n", url);
 	 }
     strcat_resize(&json, &json_size, "]}}");
     return json;
